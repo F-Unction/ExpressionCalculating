@@ -1,8 +1,7 @@
-// ExpressionCalculating.cpp : ¶¨Òå¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
+// ExpressionCalculating.cpp : å®šä¹‰æ§åˆ¶å°åº”ç”¨ç¨‹åºçš„å…¥å£ç‚¹ã€‚
 //
 
 #include "stdafx.h"
-#include "stdio.h"
 #include "main.h"
 #include <iostream>
 
@@ -15,9 +14,6 @@ string qu(string x)
 
 int main()
 {
-	int a; char c; float f;
-	scanf_s("%d %c %f", &a, &c, &f);
-
 
 loop:cout << "Please input a expression" << endl \
 	<< "(input \"help\" to get help,input\"exit\" to exit):" << endl;
