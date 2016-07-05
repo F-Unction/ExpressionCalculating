@@ -1,5 +1,7 @@
 // ExpressionCalculating.cpp : 定义控制台应用程序的入口点。
-//
+//!!! be careful：
+//Because it is a test program,which does not belong to the main content, I do not use a rigorous structure to write it.
+//but I have  ensured the rigorous structure in main.h
 
 #include "stdafx.h"
 #include "main.h"
