@@ -10,7 +10,7 @@
 
 string qu(string x)
 {
-	return "\"" + string(x) + "\" ";
+	return "\"" + x + "\" ";
 }
 #define q(x) qu(#x)
 
