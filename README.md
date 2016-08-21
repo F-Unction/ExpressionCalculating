@@ -3,7 +3,8 @@ A program to calculate arithmetic expressions.
 
 ##Help Document
 ###For Chinese:
-中文文档正在构建。请关注我的个人网站 www.pragma-twice.top
+中文文档已构建完成，请访问
+http://pragma-twice.top/index.php/project/expressioncalculating-doc/
 ###For Other:
 Sorry,I have no time and ability to make help document in all of languages.
 If you haven't learnt Chinese,an brief English introduce under this is good to know more about the project.
