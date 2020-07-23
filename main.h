@@ -7,9 +7,10 @@
 #include <stack>
 #include <sstream>
 #include <algorithm>
-#include <functional>
+
 #include <cmath>
 #include <random> 
+#include <functional>
 
 //useful numbers in math
 #define M_E        2.71828182845904523536   // e
@@ -28,157 +29,262 @@
 
 using namespace std;
 
-struct expVarSettings //±äÁ¿ÊôĞÔ
+struct expVarSettings //å˜é‡å±æ€§
 {
-	string exp;//±äÁ¿Ãû
-	double value;//Öµ
+	string exp;//å˜é‡å
+	double value;//å€¼
 
 	expVarSettings(const string& iName, double iValue) \
-		:exp(iName),value(iValue) {}
+		:exp(iName), value(iValue) {}
 
 };
 
 const vector<expVarSettings> expVarSet = { \
 expVarSettings("PI",M_PI),\
-expVarSettings("E", M_E ),\
+expVarSettings("E", M_E),\
 };
 
 
-enum expOperators :short //ÔËËã·ûÖÖÀà
+enum expOperators :short //è¿ç®—ç¬¦ç§ç±»
 {
-	lbracket=1/*×óÀ¨ºÅ*/ ,rbracket/*ÓÒÀ¨ºÅ*/ , plus, minus, times, divided, power, mod
+	lbracket = 1/*å·¦æ‹¬å·*/, rbracket/*å³æ‹¬å·*/, plus, minus, times, divided, power, mod
 };
 
-struct expOperatorSettings //ÔËËã·ûÊôĞÔ
+struct expOperatorSettings //è¿ç®—ç¬¦å±æ€§
 {
 	expOperators opr;
-	short priority;//ÓÅÏÈ¼¶
-	string exp;//×Ö·û´®±íÊ¾
-	function<double(double,double)> func;//µ÷ÓÃµÄº¯Êı
+	short priority;//ä¼˜å…ˆçº§
+	string exp;//å­—ç¬¦ä¸²è¡¨ç¤º
+	std::function<double(double, double)> func;//è°ƒç”¨çš„å‡½æ•°
 
-	expOperatorSettings(expOperators iOpr, short iPriority, const string& iExp, function<double(double, double)> iFunc) \
+	expOperatorSettings(expOperators iOpr, short iPriority, const string& iExp, std::function<double(double, double)> iFunc) \
 		:opr(iOpr), priority(iPriority), exp(iExp), func(iFunc) {}
-	expOperatorSettings(expOperators iOpr, short iPriority, const string& iExp) :opr(iOpr),priority(iPriority),exp(iExp){}
-	expOperatorSettings(expOperators iOpr) :opr(iOpr){}
+	expOperatorSettings(expOperators iOpr, short iPriority, const string& iExp) :opr(iOpr), priority(iPriority), exp(iExp)
+	{
+	}
+	expOperatorSettings(expOperators iOpr) :opr(iOpr)
+	{
+	}
 
-	bool operator==(const expOperatorSettings& rhs) const { return opr == rhs.opr; }
-	bool operator<(const expOperatorSettings& rhs) const { return opr < rhs.opr; }
+	bool operator==(const expOperatorSettings& rhs) const
+	{
+		return opr == rhs.opr;
+	}
+	bool operator<(const expOperatorSettings& rhs) const
+	{
+		return opr < rhs.opr;
+	}
 
 };
 
 /*
-ÔËËã·ûÓÅÏÈ¼¶
-  0 ( ×óÀ¨ºÅ //ÅÅ³ı
-  0 ) ÓÒÀ¨ºÅ //ÅÅ³ı
-- 1   º¯Êı
-- 2 ^ ÃİÔËËã
-- 3 * ³Ë
-- 3 / ³ı
-- 3 % È¡Óà
-- 4 + ¼Ó
-- 4 - ¼õ
-- 5 < Ğ¡ÓÚ
-- 5 <= Ğ¡ÓÚµÈÓÚ
-- 5 > ´óÓÚ
-- 5 >= ´óÓÚµÈÓÚ
-- 6 == µÈÓÚ
-- 6 != ²»µÈÓÚ
-- 7 && Âß¼­Óë
-- 8 || Âß¼­»ò
+è¿ç®—ç¬¦ä¼˜å…ˆçº§
+  0 ( å·¦æ‹¬å· //æ’é™¤
+  0 ) å³æ‹¬å· //æ’é™¤
+- 1   å‡½æ•°
+- 2 ^ å¹‚è¿ç®—
+- 3 * ä¹˜
+- 3 / é™¤
+- 3 % å–ä½™
+- 4 + åŠ 
+- 4 - å‡
+- 5 < å°äº
+- 5 <= å°äºç­‰äº
+- 5 > å¤§äº
+- 5 >= å¤§äºç­‰äº
+- 6 == ç­‰äº
+- 6 != ä¸ç­‰äº
+- 7 && é€»è¾‘ä¸
+- 8 || é€»è¾‘æˆ–
 */
 
 const set<expOperatorSettings> expOprSet = { \
 expOperatorSettings(expOperators::lbracket, 0, "("), \
 expOperatorSettings(expOperators::rbracket, 0, ")"), \
-expOperatorSettings(expOperators::times, -3, "*", [](double x, double y) {return x * y; }), \
-expOperatorSettings(expOperators::divided, -3, "/", [](double x, double y) {return x / y; }), \
-expOperatorSettings(expOperators::plus,-4,"+", [](double x, double y) {return x + y; }),\
-expOperatorSettings(expOperators::minus, -4, "-", [](double x, double y) {return x - y; }), \
-expOperatorSettings(expOperators::power, -2, "^", [](double x, double y) {return std::pow(x,y); }), \
-expOperatorSettings(expOperators::mod, -3, "%", [](double x, double y) {return double(int(x) % int(y)); }), \
+expOperatorSettings(expOperators::times, -3, "*", [](double x, double y)
+ {
+return x * y;
+}), \
+expOperatorSettings(expOperators::divided, -3, "/", [](double x, double y)
+ {
+return x / y;
+}), \
+expOperatorSettings(expOperators::plus,-4,"+", [](double x, double y)
+ {
+return x + y;
+}),\
+expOperatorSettings(expOperators::minus, -4, "-", [](double x, double y)
+ {
+return x - y;
+}), \
+expOperatorSettings(expOperators::power, -2, "^", [](double x, double y)
+ {
+return std::pow(x,y);
+}), \
+expOperatorSettings(expOperators::mod, -3, "%", [](double x, double y)
+ {
+return double(int(x) % int(y));
+}), \
 };
 
 typedef unsigned long expFunctionId;
-struct expFunctionSettings //º¯ÊıÊôĞÔ
+struct expFunctionSettings //å‡½æ•°å±æ€§
 {
 	static expFunctionId allocator;
 
-	const expFunctionId id;//×Ô¶¯·ÖÅäid
-	string exp;//º¯ÊıÃû
-	size_t argCount;//²ÎÊı¸öÊı
-	function<double(deque<double>)> func;//µ÷ÓÃµÄº¯Êı
+	const expFunctionId id;//è‡ªåŠ¨åˆ†é…id
+	string exp;//å‡½æ•°å
+	size_t argCount;//å‚æ•°ä¸ªæ•°
+	std::function <double(deque<double>&)> func;//è°ƒç”¨çš„å‡½æ•°
 
-	expFunctionSettings(const string& iName, size_t iArgCount, function<double(deque<double>)> iFunc) \
+	expFunctionSettings(const string& iName, size_t iArgCount, std::function<double(deque<double>&)> iFunc) \
 		:id(++allocator), exp(iName), argCount(iArgCount), func(iFunc) {}
-	expFunctionSettings(const expFunctionId iId) : id(iId){}
+	expFunctionSettings(const expFunctionId iId) : id(iId)
+	{
+	}
 
-	bool operator==(const expFunctionSettings& rhs) const { return id == rhs.id; }
-	bool operator<(const expFunctionSettings& rhs) const { return id < rhs.id; }
+	bool operator==(const expFunctionSettings& rhs) const
+	{
+		return id == rhs.id;
+	}
+	bool operator<(const expFunctionSettings& rhs) const
+	{
+		return id < rhs.id;
+	}
 
 };
 expFunctionId expFunctionSettings::allocator = 0;
 
 //FunctionsInit{
 	/*Random Init*/
-	random_device randSeed;
-	default_random_engine randEngine(randSeed());
+random_device randSeed;
+default_random_engine randEngine(randSeed());
 //}
 const set<expFunctionSettings> expFuncSet = { \
-//ÕıÏÒº¯Êı
-expFunctionSettings("sin", 1, [](deque<double>& args) {return sin(args[0]); }),\
-//ÓàÏÒº¯Êı
-expFunctionSettings("cos", 1, [](deque<double>& args) {return cos(args[0]); }),\
-//ÕıÇĞº¯Êı
-expFunctionSettings("tan", 1, [](deque<double>& args) {return tan(args[0]); }),\
-//·´ÕıÏÒº¯Êı£¬½á¹û½éÓÚ[-PI/2,PI/2]
-expFunctionSettings("arcsin", 1, [](deque<double>& args) {return asin(args[0]); }), \
-//·´ÓàÏÒº¯Êı£¬½á¹û½éÓÚ[0,PI]
-expFunctionSettings("arccos", 1, [](deque<double>& args) {return acos(args[0]); }), \
-//·´ÕıÇĞº¯Êı£¨Ö÷Öµ£©£¬½á¹û½éÓÚ[-PI/2,PI/2]
-expFunctionSettings("arctan", 1, [](deque<double>& args) {return atan(args[0]); }), \
-//ÒÔ10Îªµ×µÄ¶ÔÊıº¯Êı
-expFunctionSettings("lg", 1, [](deque<double>& args) {return log10(args[0]); }), \
-//×ÔÈ»¶ÔÊıº¯Êı
-expFunctionSettings("ln", 1, [](deque<double>& args) {return log(args[0]); }), \
-//¶ÔÊıº¯Êı,arg[0]ÎªÕæÊı£¬arg[1]Îªµ×Êı
-expFunctionSettings("log", 2, [](deque<double>& args) {return log(args[0]) / log(args[1]); }), \
-//¾ø¶ÔÖµº¯Êı
-expFunctionSettings("abs", 1, [](deque<double>& args) {return abs(args[0]); }), \
-//¸ßË¹º¯Êı,·µ»Ø²»±Èx´óµÄ×î´óÕûÊı
-expFunctionSettings("int", 1, [](deque<double>& args) {return floor(args[0]); }), \
-//¿ªÆ½·½º¯Êı
-expFunctionSettings("sqrt", 1, [](deque<double>& args) {return sqrt(args[0]); }), \
-//·µ»Ø[arg[0],arg[1])ÖĞµÄÕûÊıËæ»úÖµ  !!²»ÒªÍü¼Çsrand()
-expFunctionSettings("rand", 2, [](deque<double>& args)->double {\
-	uniform_int_distribution <> randRange(args[0],args[1]); return double(randRange(randEngine)); }), \
+//æ­£å¼¦å‡½æ•°
+expFunctionSettings("sin", 1, [](deque<double>& args)
+ {
+return sin(args[0]);
+}),\
+//ä½™å¼¦å‡½æ•°
+expFunctionSettings("cos", 1, [](deque<double>& args)
+ {
+return cos(args[0]);
+}),\
+//æ­£åˆ‡å‡½æ•°
+expFunctionSettings("tan", 1, [](deque<double>& args)
+ {
+return tan(args[0]);
+}),\
+//åæ­£å¼¦å‡½æ•°ï¼Œç»“æœä»‹äº[-PI/2,PI/2]
+expFunctionSettings("arcsin", 1, [](deque<double>& args)
+ {
+return asin(args[0]);
+}), \
+//åä½™å¼¦å‡½æ•°ï¼Œç»“æœä»‹äº[0,PI]
+expFunctionSettings("arccos", 1, [](deque<double>& args)
+ {
+return acos(args[0]);
+}), \
+//åæ­£åˆ‡å‡½æ•°ï¼ˆä¸»å€¼ï¼‰ï¼Œç»“æœä»‹äº[-PI/2,PI/2]
+expFunctionSettings("arctan", 1, [](deque<double>& args)
+ {
+return atan(args[0]);
+}), \
+//ä»¥10ä¸ºåº•çš„å¯¹æ•°å‡½æ•°
+expFunctionSettings("lg", 1, [](deque<double>& args)
+ {
+return log10(args[0]);
+}), \
+//è‡ªç„¶å¯¹æ•°å‡½æ•°
+expFunctionSettings("ln", 1, [](deque<double>& args)
+ {
+return log(args[0]);
+}), \
+//å¯¹æ•°å‡½æ•°,arg[0]ä¸ºçœŸæ•°ï¼Œarg[1]ä¸ºåº•æ•°
+expFunctionSettings("log", 2, [](deque<double>& args)
+ {
+return log(args[0]) / log(args[1]);
+}), \
+//ç»å¯¹å€¼å‡½æ•°
+expFunctionSettings("abs", 1, [](deque<double>& args)
+ {
+return abs(args[0]);
+}), \
+//é«˜æ–¯å‡½æ•°,è¿”å›ä¸æ¯”xå¤§çš„æœ€å¤§æ•´æ•°
+expFunctionSettings("int", 1, [](deque<double>& args)
+ {
+return floor(args[0]);
+}), \
+//å¼€å¹³æ–¹å‡½æ•°
+expFunctionSettings("sqrt", 1, [](deque<double>& args)
+ {
+return sqrt(args[0]);
+}), \
+//è¿”å›[arg[0],arg[1])ä¸­çš„æ•´æ•°éšæœºå€¼  !!ä¸è¦å¿˜è®°srand()
+expFunctionSettings("rand", 2, [](deque<double>& args)->double
+ {
+\
+  uniform_int_distribution <> randRange(args[0],args[1]); return double(randRange(randEngine));
+}), \
 };
 
 
-enum expType :char { num = 1, opr, func };
+enum expType :char
+{
+	num = 1, opr, func
+};
 
-class expUnit //ËãÊı±í´ïÊ½£¬²¨À¼»òÄæ²¨À¼±í´ïÊ½ÖĞµÄÒ»¸ö»ù±¾µ¥Î»
+class expUnit //ç®—æ•°è¡¨è¾¾å¼ï¼Œæ³¢å…°æˆ–é€†æ³¢å…°è¡¨è¾¾å¼ä¸­çš„ä¸€ä¸ªåŸºæœ¬å•ä½
 {
 private:
 	expType type;
 
-	union expValue { double num; expOperators opr; expFunctionId func; };
+	union expValue
+	{
+		double num; expOperators opr; expFunctionId func;
+	};
 	expValue value;
 
 public:
-	expUnit(double iNum) :type(num) { value.num = iNum; }
-	expUnit(expOperators iOpr) :type(opr) { value.opr = iOpr; }
-	expUnit(expFunctionId iFunc) :type(func) { value.func = iFunc; }
+	expUnit(double iNum) :type(num)
+	{
+		value.num = iNum;
+	}
+	expUnit(expOperators iOpr) :type(opr)
+	{
+		value.opr = iOpr;
+	}
+	expUnit(expFunctionId iFunc) :type(func)
+	{
+		value.func = iFunc;
+	}
 
-	void set(double iNum) { type = num; value.num = iNum; }
-	void set(expOperators iOpr) { type = opr; value.opr = iOpr; }
-	void set(expFunctionId iFunc) { type = func; value.func = iFunc; }
+	void set(double iNum)
+	{
+		type = num; value.num = iNum;
+	}
+	void set(expOperators iOpr)
+	{
+		type = opr; value.opr = iOpr;
+	}
+	void set(expFunctionId iFunc)
+	{
+		type = func; value.func = iFunc;
+	}
 
-	expType getType() const { return type; }
-	expValue getValue() const { return value; }
+	expType getType() const
+	{
+		return type;
+	}
+	expValue getValue() const
+	{
+		return value;
+	}
 };
 
-/*´Ó×Ö·û´®µÄÄ³¸öÎ»ÖÃ¿ªÊ¼³¢ÊÔÈ¡³öÊı×Ö£¬ÈôÈ¡³öÔò°ÑÎ»ÖÃ±ä¸üµ½Êı×ÖÖ®ºó£¬·µ»ØÊÇ·ñÈ¡³ö
-!!Ğè±£Ö¤£¨stringstream&£©streamÒÑ¾­±»¸³Óè(string::iterator&)posËùÖ¸ÏòµÄ×Ö·û´®(string&)exp
+/*ä»å­—ç¬¦ä¸²çš„æŸä¸ªä½ç½®å¼€å§‹å°è¯•å–å‡ºæ•°å­—ï¼Œè‹¥å–å‡ºåˆ™æŠŠä½ç½®å˜æ›´åˆ°æ•°å­—ä¹‹åï¼Œè¿”å›æ˜¯å¦å–å‡º
+!!éœ€ä¿è¯ï¼ˆstringstream&ï¼‰streamå·²ç»è¢«èµ‹äºˆ(string::iterator&)posæ‰€æŒ‡å‘çš„å­—ç¬¦ä¸²(string&)exp
 */
 bool expGetNumber(stringstream& stream, string& exp, string::iterator& pos, expUnit& output)
 {
@@ -199,8 +305,8 @@ bool expGetNumber(stringstream& stream, string& exp, string::iterator& pos, expU
 	else return false;
 }
 
-/*ÎªexpGetOperator()ºÍexpGetFunction()·şÎñ£¬Æ¥Åä±í´ïÊ½ÖĞµÄÔËËã·û»òº¯Êı
-!!Æ¥ÅäËã·¨Îª·ÇÌ°ĞÄËã·¨£¬´ËÊ±¶à×Ö·ûÔËËã·û¿ÉÄÜ±»ÆÁ±ÎÎŞ·¨Æ¥Åä
+/*ä¸ºexpGetOperator()å’ŒexpGetFunction()æœåŠ¡ï¼ŒåŒ¹é…è¡¨è¾¾å¼ä¸­çš„è¿ç®—ç¬¦æˆ–å‡½æ•°
+!!åŒ¹é…ç®—æ³•ä¸ºéè´ªå¿ƒç®—æ³•ï¼Œæ­¤æ—¶å¤šå­—ç¬¦è¿ç®—ç¬¦å¯èƒ½è¢«å±è”½æ— æ³•åŒ¹é…
 */
 template<class T>
 class expMatch
@@ -208,20 +314,22 @@ class expMatch
 	const string& expr;
 	const string::iterator pos;
 public:
-	expMatch(const string& iExpr,const string::iterator& iPos) :expr(iExpr), pos(iPos) {}
+	expMatch(const string& iExpr, const string::iterator& iPos) :expr(iExpr), pos(iPos)
+	{
+	}
 	bool operator()(const T& lhs)
 	{
 		string::const_iterator lhsPos = lhs.exp.begin();
-		
+
 		for (string::const_iterator tmpPos = pos; tmpPos != expr.end() && lhsPos != lhs.exp.end(); ++tmpPos, ++lhsPos)
 		{
 			if (*tmpPos != *lhsPos)break;
 		}
-		return lhsPos==lhs.exp.end();
+		return lhsPos == lhs.exp.end();
 	}
 };
 
-//´Ó×Ö·û´®µÄÄ³¸öÎ»ÖÃ¿ªÊ¼³¢ÊÔÈ¡³öÔËËã·û£¬ÈôÈ¡³öÔò°ÑÎ»ÖÃ±ä¸üµ½ÔËËã·ûÖ®ºó£¬·µ»ØÊÇ·ñÈ¡³ö
+//ä»å­—ç¬¦ä¸²çš„æŸä¸ªä½ç½®å¼€å§‹å°è¯•å–å‡ºè¿ç®—ç¬¦ï¼Œè‹¥å–å‡ºåˆ™æŠŠä½ç½®å˜æ›´åˆ°è¿ç®—ç¬¦ä¹‹åï¼Œè¿”å›æ˜¯å¦å–å‡º
 bool expGetOperator(string& exp, string::iterator& pos, expUnit& output)
 {
 	auto foundPos = find_if(expOprSet.begin(), expOprSet.end(), expMatch<expOperatorSettings>(exp, pos));
@@ -235,7 +343,7 @@ bool expGetOperator(string& exp, string::iterator& pos, expUnit& output)
 	else return false;
 }
 
-//´Ó×Ö·û´®µÄÄ³¸öÎ»ÖÃ¿ªÊ¼³¢ÊÔÈ¡³öº¯ÊıÃû£¬ÈôÈ¡³öÔò°ÑÎ»ÖÃ±ä¸üµ½º¯ÊıÃûÖ®ºó£¬·µ»ØÊÇ·ñÈ¡³ö
+//ä»å­—ç¬¦ä¸²çš„æŸä¸ªä½ç½®å¼€å§‹å°è¯•å–å‡ºå‡½æ•°åï¼Œè‹¥å–å‡ºåˆ™æŠŠä½ç½®å˜æ›´åˆ°å‡½æ•°åä¹‹åï¼Œè¿”å›æ˜¯å¦å–å‡º
 bool expGetFunction(string& exp, string::iterator& pos, expUnit& output)
 {
 	auto foundPos = find_if(expFuncSet.begin(), expFuncSet.end(), expMatch<expFunctionSettings>(exp, pos));
@@ -249,69 +357,69 @@ bool expGetFunction(string& exp, string::iterator& pos, expUnit& output)
 	else return false;
 }
 
-//´Ó×Ö·û´®µÄÄ³¸öÎ»ÖÃ¿ªÊ¼³¢ÊÔÈ¡³ö±äÁ¿Ãû£¬ÈôÈ¡³öÔò°ÑÎ»ÖÃ±ä¸üµ½±äÁ¿ÃûÖ®ºó£¬·µ»ØÊÇ·ñÈ¡³ö
+//ä»å­—ç¬¦ä¸²çš„æŸä¸ªä½ç½®å¼€å§‹å°è¯•å–å‡ºå˜é‡åï¼Œè‹¥å–å‡ºåˆ™æŠŠä½ç½®å˜æ›´åˆ°å˜é‡åä¹‹åï¼Œè¿”å›æ˜¯å¦å–å‡º
 bool expGetVar(string& exp, string::iterator& pos, expUnit& output)
 {
 	auto foundPos = find_if(expVarSet.begin(), expVarSet.end(), expMatch<expVarSettings>(exp, pos));
 	if (foundPos != expVarSet.end())
 	{
 		pos += foundPos->exp.size();
-		output.set(foundPos->value);//±»¶ÁÈëºó£¬±äÁ¿±»µ±×÷Êı´¦Àí
+		output.set(foundPos->value);//è¢«è¯»å…¥åï¼Œå˜é‡è¢«å½“ä½œæ•°å¤„ç†
 
 		return true;
 	}
 	else return false;
 }
 
-//ºöÂÔ±í´ïÊ½ÖĞµÄ¿Õ¸ñ»òÆäËû¿ÉÒÔºöÂÔµÄ×Ö·û×é
+//å¿½ç•¥è¡¨è¾¾å¼ä¸­çš„ç©ºæ ¼æˆ–å…¶ä»–å¯ä»¥å¿½ç•¥çš„å­—ç¬¦ç»„
 bool expGetSpace(string& exp, string::iterator& pos)
 {
 	size_t i;
-	for (i = 0; pos != exp.end() && (*pos == ' ' || *pos == ',' ); ++pos, ++i);
+	for (i = 0; pos != exp.end() && (*pos == ' ' || *pos == ','); ++pos, ++i);
 	return i > 0;
 }
 
 
-//ÊäÈëËãÊõ±í´ïÊ½£¨×Ö·û´®£©£¬¼ì²éÕıÈ·ĞÔ£¬²¢Éú³ÉËãÊõ±í´ïÊ½£¨½á¹¹Êı×é£©,·µ»ØÍê³É×´Ì¬
+//è¾“å…¥ç®—æœ¯è¡¨è¾¾å¼ï¼ˆå­—ç¬¦ä¸²ï¼‰ï¼Œæ£€æŸ¥æ­£ç¡®æ€§ï¼Œå¹¶ç”Ÿæˆç®—æœ¯è¡¨è¾¾å¼ï¼ˆç»“æ„æ•°ç»„ï¼‰,è¿”å›å®ŒæˆçŠ¶æ€
 bool expStrToN(string& input, vector<expUnit>& output)
 {
 	stringstream numStream(input);
 	string::iterator nowPos = input.begin();
 	expUnit tmpUnit(0.0);
-	int bracketCount = 0; //À¨ºÅ¼ÆÊıÆ÷£¬Óö×óÀ¨ºÅ¼ÓÒ»£¬ÓöÓÒÀ¨ºÅ¼õÒ»
+	int bracketCount = 0; //æ‹¬å·è®¡æ•°å™¨ï¼Œé‡å·¦æ‹¬å·åŠ ä¸€ï¼Œé‡å³æ‹¬å·å‡ä¸€
 
 	while (nowPos != input.end())
 	{
-		if (expGetSpace(input,nowPos));
-		else if (expGetNumber(numStream, input, nowPos, tmpUnit)) 
-		{ 
-			output.push_back(tmpUnit); 
+		if (expGetSpace(input, nowPos));
+		else if (expGetNumber(numStream, input, nowPos, tmpUnit))
+		{
+			output.push_back(tmpUnit);
 		}
 		else if (expGetVar(input, nowPos, tmpUnit))
 		{
 			output.push_back(tmpUnit);
 		}
-		else if (expGetOperator(input, nowPos, tmpUnit)) 
-		{ 
+		else if (expGetOperator(input, nowPos, tmpUnit))
+		{
 			if (!output.empty())
 			{
 				vector<expUnit>::iterator oLastUnit = output.end() - 1;
 				if (oLastUnit->getType() == expType::opr)
 				{
-					if (oLastUnit->getValue().opr != expOperators::lbracket &&\
-						oLastUnit->getValue().opr != expOperators::rbracket &&\
-						tmpUnit.getValue().opr != expOperators::lbracket &&\
+					if (oLastUnit->getValue().opr != expOperators::lbracket && \
+						oLastUnit->getValue().opr != expOperators::rbracket && \
+						tmpUnit.getValue().opr != expOperators::lbracket && \
 						tmpUnit.getValue().opr != expOperators::rbracket)
-						return false; //ÔËËã·û£¨³ı×óÓÒÀ¨ºÅ£©²»ÏàÁÚ¼ì²éÊ§°Ü
+						return false; //è¿ç®—ç¬¦ï¼ˆé™¤å·¦å³æ‹¬å·ï¼‰ä¸ç›¸é‚»æ£€æŸ¥å¤±è´¥
 				}
 				else if (oLastUnit->getType() == expType::func)
 				{
-					if (tmpUnit.getValue().opr != expOperators::lbracket &&\
+					if (tmpUnit.getValue().opr != expOperators::lbracket && \
 						tmpUnit.getValue().opr != expOperators::rbracket)
-						return false;//ÔËËã·û£¨³ı×óÓÒÀ¨ºÅ£©Ç°²»ÄÜÁÙÓĞº¯Êı
+						return false;//è¿ç®—ç¬¦ï¼ˆé™¤å·¦å³æ‹¬å·ï¼‰å‰ä¸èƒ½ä¸´æœ‰å‡½æ•°
 				}
 			}
-			output.push_back(tmpUnit); 
+			output.push_back(tmpUnit);
 			if (tmpUnit.getValue().opr == expOperators::lbracket)bracketCount += 1;
 			else if (tmpUnit.getValue().opr == expOperators::rbracket)bracketCount -= 1;
 		}
@@ -321,7 +429,7 @@ bool expStrToN(string& input, vector<expUnit>& output)
 			{
 				vector<expUnit>::iterator oLastUnit = output.end() - 1;
 				if (oLastUnit->getType() == expType::num || oLastUnit->getType() == expType::func)
-					return false;//º¯ÊıÇ°²»ÄÜÁÙÓĞÊı×Ö»òº¯Êı
+					return false;//å‡½æ•°å‰ä¸èƒ½ä¸´æœ‰æ•°å­—æˆ–å‡½æ•°
 			}
 			output.push_back(tmpUnit);
 		}
@@ -329,13 +437,13 @@ bool expStrToN(string& input, vector<expUnit>& output)
 	}
 
 
-	if (bracketCount != 0) return false; //À¨ºÅºÏÀíĞÔ¼ì²éÊ§°Ü
+	if (bracketCount != 0) return false; //æ‹¬å·åˆç†æ€§æ£€æŸ¥å¤±è´¥
 
 	return true;
 }
 
-//ÎªexpNToRPN()·şÎñ¡£¶ÑÕ»ÖĞÔËËã·û»òº¯ÊıµÄ´¦Àí
-void expNToRPN_OprOrFuncPorc(vector<expUnit>::iterator& iUnit,short nowPriority,\
+//ä¸ºexpNToRPN()æœåŠ¡ã€‚å †æ ˆä¸­è¿ç®—ç¬¦æˆ–å‡½æ•°çš„å¤„ç†
+void expNToRPN_OprOrFuncPorc(vector<expUnit>::iterator& iUnit, short nowPriority, \
 	stack<expUnit, vector<expUnit>>& unitStack, vector<expUnit>& output)
 {
 	short topPriority = 0;
@@ -357,7 +465,7 @@ void expNToRPN_OprOrFuncPorc(vector<expUnit>::iterator& iUnit,short nowPriority,
 	}
 }
 
-//ÊäÈëËãÊõ±í´ïÊ½£¨½á¹¹Êı×é£©£¬Éú³ÉÄæ²¨À¼±í´ïÊ½£¨½á¹¹Êı×é£©,·µ»ØÍê³É×´Ì¬
+//è¾“å…¥ç®—æœ¯è¡¨è¾¾å¼ï¼ˆç»“æ„æ•°ç»„ï¼‰ï¼Œç”Ÿæˆé€†æ³¢å…°è¡¨è¾¾å¼ï¼ˆç»“æ„æ•°ç»„ï¼‰,è¿”å›å®ŒæˆçŠ¶æ€
 bool expNToRPN(vector<expUnit>& input, vector<expUnit>& output)
 {
 	stack<expUnit, vector<expUnit>> unitStack;
@@ -383,14 +491,14 @@ bool expNToRPN(vector<expUnit>& input, vector<expUnit>& output)
 				}
 				unitStack.pop();
 				break;
-			default://³ı×óÓÒÀ¨ºÅÍâµÄÔËËã·û
+			default://é™¤å·¦å³æ‹¬å·å¤–çš„è¿ç®—ç¬¦
 				short nowPriority = expOprSet.find(iUnit->getValue().opr)->priority;
 				expNToRPN_OprOrFuncPorc(iUnit, nowPriority, unitStack, output);
 				break;
 			}
 			break;
 		case expType::func:
-			//º¯ÊıÓÅÏÈ¼¶ÉèÎª-1
+			//å‡½æ•°ä¼˜å…ˆçº§è®¾ä¸º-1
 			expNToRPN_OprOrFuncPorc(iUnit, -1, unitStack, output);
 			break;
 		default:
@@ -406,16 +514,16 @@ bool expNToRPN(vector<expUnit>& input, vector<expUnit>& output)
 	return true;
 }
 
-//ÊäÈëÄæ²¨À¼±í´ïÊ½£¨½á¹¹Êı×é£©£¬¼ÆËã½á¹û£¬·µ»ØÍê³É×´Ì¬
+//è¾“å…¥é€†æ³¢å…°è¡¨è¾¾å¼ï¼ˆç»“æ„æ•°ç»„ï¼‰ï¼Œè®¡ç®—ç»“æœï¼Œè¿”å›å®ŒæˆçŠ¶æ€
 bool expRPNToResult(vector<expUnit>& input, double& output)
 {
 	stack<expUnit, vector<expUnit>> unitStack;
 
-	function<double(double,double)> oprFunc;
+	std::function<double(double, double)> oprFunc;
 	double lhs, rhs;
 
 	set<expFunctionSettings>::iterator iFuncSettings;
-	function<double(deque<double>&)> iFuncCall;
+	std::function<double(deque<double>&)> iFuncCall;
 	size_t iArgCount;
 	deque<double> iArgs;
 
@@ -429,7 +537,7 @@ bool expRPNToResult(vector<expUnit>& input, double& output)
 		case expType::opr:
 			oprFunc = expOprSet.find(iUnit->getValue().opr)->func;
 
-			if (unitStack.empty())return false;//ÔËËã²»ºÏÀí
+			if (unitStack.empty())return false;//è¿ç®—ä¸åˆç†
 
 			rhs = unitStack.top().getValue().num;
 			unitStack.pop();
@@ -445,7 +553,7 @@ bool expRPNToResult(vector<expUnit>& input, double& output)
 				unitStack.pop();
 			}
 
-			unitStack.push(expUnit(oprFunc(lhs,rhs)));
+			unitStack.push(expUnit(oprFunc(lhs, rhs)));
 			break;
 		case expType::func:
 			iFuncSettings = expFuncSet.find(iUnit->getValue().func);
@@ -454,7 +562,7 @@ bool expRPNToResult(vector<expUnit>& input, double& output)
 
 			for (size_t i = 0; i < iArgCount; ++i)
 			{
-				if (unitStack.empty())return false;//²ÎÊıÍêÕûĞÔ¼ì²éÊ§°Ü
+				if (unitStack.empty())return false;//å‚æ•°å®Œæ•´æ€§æ£€æŸ¥å¤±è´¥
 				iArgs.push_front(unitStack.top().getValue().num);
 				unitStack.pop();
 			}
@@ -466,21 +574,21 @@ bool expRPNToResult(vector<expUnit>& input, double& output)
 			break;
 		}
 	}
-	if (unitStack.empty())return false;//¶ÑÕ»Îª¿Õ
+	if (unitStack.empty())return false;//å †æ ˆä¸ºç©º
 
 	output = unitStack.top().getValue().num;
 	return true;
 }
 
-//£¨¹«¿ª£©Ö÷º¯Êı£¬ÊäÈëËãÊõ±í´ïÊ½£¨×Ö·û´®£©£¬Êä³ö½á¹û
-bool expCalculate(string& input,double& output)
+//ï¼ˆå…¬å¼€ï¼‰ä¸»å‡½æ•°ï¼Œè¾“å…¥ç®—æœ¯è¡¨è¾¾å¼ï¼ˆå­—ç¬¦ä¸²ï¼‰ï¼Œè¾“å‡ºç»“æœ
+bool expCalculate(string& input, double& output)
 {
-	vector<expUnit> N; //£¨½á¹¹»¯£©ËãÊõ±í´ïÊ½
-	vector<expUnit> RPN; //£¨½á¹¹»¯£©Äæ²¨À¼±í´ïÊ½
+	vector<expUnit> N; //ï¼ˆç»“æ„åŒ–ï¼‰ç®—æœ¯è¡¨è¾¾å¼
+	vector<expUnit> RPN; //ï¼ˆç»“æ„åŒ–ï¼‰é€†æ³¢å…°è¡¨è¾¾å¼
 
-	if(!expStrToN(input, N)) return false;
-	if(!expNToRPN(N,RPN)) return false;
-	if(!expRPNToResult(RPN, output)) return false;
+	if (!expStrToN(input, N)) return false;
+	if (!expNToRPN(N, RPN)) return false;
+	if (!expRPNToResult(RPN, output)) return false;
 
 	return true;
 }
