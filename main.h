@@ -7,10 +7,9 @@
 #include <stack>
 #include <sstream>
 #include <algorithm>
-
+#include <functional>
 #include <cmath>
 #include <random> 
-#include <functional>
 
 //useful numbers in math
 #define M_E        2.71828182845904523536   // e
